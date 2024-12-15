@@ -1,55 +1,61 @@
 package com.example.backend.Service;
 
-
-import com.example.backend.Model.User;
+import com.example.backend.dtos.CredentialsDto;
+import com.example.backend.dtos.SignUpDto;
+import com.example.backend.dtos.UserDto;
+import com.example.backend.entities.User;
+import com.example.backend.enums.Role;
+import com.example.backend.exceptions.AppException;
+import com.example.backend.mappers.UserMapper;
 import com.example.backend.Repository.UserRepository;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
-import java.util.Date;
+import java.nio.CharBuffer;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    // Generare o cheie sigură folosind Keys.secretKeyFor
-    private static final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private final PasswordEncoder passwordEncoder;
 
-    public User registerUser(User user) {
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+    private final UserMapper userMapper;
+
+    public UserDto login(CredentialsDto credentialsDto) {
+        User user = userRepository.findByLogin(credentialsDto.getLogin())
+                .orElseThrow(() -> new AppException("Unknown user", HttpStatus.NOT_FOUND));
+
+        if (passwordEncoder.matches(CharBuffer.wrap(credentialsDto.getPassword()), user.getPassword())) {
+            return userMapper.toUserDto(user);
         }
-
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
-        }
-
-        user.setPassword(new BCryptPasswordEncoder().encode(user.getPassword())); // Criptare parolă
-        return userRepository.save(user);
+        throw new AppException("Invalid password", HttpStatus.BAD_REQUEST);
     }
 
-    public String authenticateUser(String username, String password) {
-        Optional<User> user = userRepository.findByUsername(username);
+    public UserDto register(SignUpDto userDto) {
+        Optional<User> optionalUser = userRepository.findByLogin(userDto.getLogin());
 
-        if (user.isEmpty() || !new BCryptPasswordEncoder().matches(password, user.get().getPassword())) {
-            throw new RuntimeException("Invalid username or password");
+        if (optionalUser.isPresent()) {
+            throw new AppException("Login already exists", HttpStatus.BAD_REQUEST);
         }
 
-        // Generare token JWT cu username în payload
-        return Jwts.builder()
-                .setSubject(username) // Setăm username ca subiect
-                .claim("username", username) // Adăugăm username ca un claim
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 oră
-                .signWith(SECRET_KEY)
-                .compact();
+        User user = userMapper.signUpToUser(userDto);
+        user.setRole(Role.USER);
+        user.setPassword(passwordEncoder.encode(CharBuffer.wrap(userDto.getPassword())));
+
+        User savedUser = userRepository.save(user);
+
+        return userMapper.toUserDto(savedUser);
     }
+
+    public UserDto findByLogin(String login) {
+        User user = userRepository.findByLogin(login)
+                .orElseThrow(() -> new AppException("Unknown user", HttpStatus.NOT_FOUND));
+        return userMapper.toUserDto(user);
+    }
+
 }

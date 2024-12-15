@@ -1,79 +1,96 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useNavigate } from "react-router-dom"; // Importăm useNavigate
+import { setAuthHeader } from "../services/BackendService";
 import Navbar from "../components/Navbar";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+
+  const navigate = useNavigate(); // Inițializăm navigarea
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    setError(""); // Resetează mesajele de eroare
+
     try {
-      const response = await axios.post("http://localhost:8086/api/auth/login", {
-        username,
-        password,
+      const response = await fetch("http://localhost:8086/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ login, password }),
       });
 
-      // Salvare token în localStorage
-      localStorage.setItem("token", response.data.token);
-
-      // Redirecționare către homepage
-      navigate("/");
+      if (response.status === 200) {
+        const data = await response.json();
+        setAuthHeader(data.token);
+        alert("Login successful!");
+        navigate("/"); // Redirecționează către pagina de home
+      } else {
+        setError("Invalid credentials. Please try again.");
+      }
     } catch (err) {
-      setError(err.response?.data || "An error occurred");
+      setError("An error occurred. Please try again later.");
     }
   };
 
   return (
     <div><Navbar/>
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Login</h2>
         {error && (
           <div className="mb-4 text-sm text-red-600 bg-red-100 p-2 rounded">
             {error}
           </div>
         )}
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="username" className="block text-gray-700">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="login"
+              className="block text-sm font-medium text-gray-700"
+            >
               Username
             </label>
             <input
               type="text"
-              id="username"
-              className="w-full p-2 border rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              id="login"
+              value={login}
+              onChange={(e) => setLogin(e.target.value)}
+              className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your username"
             />
           </div>
-          <div className="mb-6">
-            <label htmlFor="password" className="block text-gray-700">
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700"
+            >
               Password
             </label>
             <input
               type="password"
               id="password"
-              className="w-full p-2 border rounded mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter your password"
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
+            className="w-full py-2 px-4 bg-blue-500 text-white font-bold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
-            Login
+            Sign In
           </button>
         </form>
-        <p className="text-center text-sm text-gray-600 mt-4">
+        <p className="text-sm text-gray-600 mt-4 text-center">
           Don't have an account?{" "}
           <a href="/register" className="text-blue-500 hover:underline">
-            Register
+            Sign up
           </a>
         </p>
       </div>

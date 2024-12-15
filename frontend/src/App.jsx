@@ -7,11 +7,10 @@ import ViewMaterial from './pages/ViewMaterial'
 import  Home  from './pages/Home'
 import Login from './pages/Login'
 import ProtectedRoute from './pages/ProtectedRoute'
-import Register from './pages/Register'
-
+import RegisterPage from './pages/RegisterPage'
+import Navbar from './components/Navbar'
 function App() {
 
-  // const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // // Functie pentru autentificare (o poți seta din Login)
   // const handleLogin = () => setIsAuthenticated(true);
@@ -21,15 +20,17 @@ function App() {
     
     <BrowserRouter>
     <Routes>
+
       
     <Route path='/' element={<Home />}></Route>
     <Route path="/create" element={<HomePage />} />
   
     <Route path='/materiale' element={<MaterialList />}></Route>
     <Route path="/edit/:id" element={<UpdateMaterial />} />
+
     <Route path="/view/:id" element={<ViewMaterial />} />
     <Route path="/login" element={<Login />} />
-    <Route path="/register" element={<Register />} />
+    <Route path="/register" element={<RegisterPage />} />
 
 
      </Routes>

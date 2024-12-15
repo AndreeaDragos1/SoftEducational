@@ -7,34 +7,30 @@ const Navbar = ({ authenticated }) => {
   const [userName, setUserName] = useState("");
 
   useEffect(() => {
-    // Dacă utilizatorul este autentificat, obține numele utilizatorului
+    // Obține numele utilizatorului doar dacă este autentificat
     if (authenticated) {
-      fetch("http://localhost:8086/getUsername", {
-        method: "GET",
-        credentials: "include", // Asigură-te că trimiți cookie-urile
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          console.log("Răspuns de la backend:", data); // Verifică răspunsul aici
-          if (data.userName) {
-            setUserName(data.userName); // Salvează numele utilizatorului
+      axios
+        .get("http://localhost:8086/getUsername", { withCredentials: true })
+        .then((response) => {
+          const { userName } = response.data;
+          if (userName) {
+            setUserName(userName);
           } else {
-            console.error("Eroare: " + data.error); // Erori de la backend
+            console.error("Eroare la obținerea numelui utilizatorului.");
           }
         })
         .catch((error) => {
-          console.error("Eroare la obținerea numelui utilizatorului:", error);
+          console.error("Eroare la cererea către backend:", error);
         });
     }
-  }, [authenticated]); // Re-apelează dacă `authenticated` se schimbă
+  }, [authenticated]);
 
   const handleLogout = () => {
-    // Funcția de logout
+    // Deconectarea utilizatorului
     axios
       .post("http://localhost:8086/logout", null, { withCredentials: true })
-      .then((res) => {
-        console.log(res.data);
-        // Reîncarcă pagina pentru a actualiza starea autentificării
+      .then(() => {
+        // Reîncarcă pagina pentru actualizarea stării autentificării
         window.location.reload();
       })
       .catch((error) => {
@@ -53,13 +49,13 @@ const Navbar = ({ authenticated }) => {
             </span>
           </Link>
           <div className="flex items-center">
-            {/* Dacă utilizatorul este autentificat, afișează username-ul și butonul de logout */}
+            {/* Dacă utilizatorul este autentificat */}
             {authenticated ? (
               <div className="mr-6 text-sm text-gray-500 dark:text-white">
                 <span>
                   <Link to="/profile" className="text-blue-600 hover:underline">
-                    {userName}
-                  </Link>{" "}
+                    {userName || "Utilizator"}
+                  </Link>
                 </span>
                 <button
                   className="ml-2 text-blue-600 dark:text-blue-500 hover:underline"
